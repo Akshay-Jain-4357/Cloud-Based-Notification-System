@@ -6,9 +6,12 @@ dist/
 build/
 .production/
 
-# Environmental variables
+# Environmental variables & local databases
 .env
 .env.local
+*.db
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
 
 # Logs
 *.log

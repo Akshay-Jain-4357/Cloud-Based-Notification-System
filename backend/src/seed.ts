@@ -76,7 +76,7 @@ async function main() {
       `,
       channel: 'EMAIL',
       category: 'USER_REGISTERED',
-      variables: ['name', 'date'],
+      variables: 'name,date',
     },
   });
 
@@ -95,7 +95,7 @@ async function main() {
       `,
       channel: 'EMAIL',
       category: 'PAYMENT_SUCCESSFUL',
-      variables: ['name', 'orderId', 'date'],
+      variables: 'name,orderId,date',
     },
   });
 
@@ -105,7 +105,7 @@ async function main() {
       body: 'Your NotifyFlow security OTP code is {{otp}}. This code will expire in 5 minutes.',
       channel: 'SMS',
       category: 'SECURITY_ALERT',
-      variables: ['otp'],
+      variables: 'otp',
     },
   });
 
@@ -115,7 +115,7 @@ async function main() {
       body: 'Check out our new real-time analytics feature updates! Click to see details.',
       channel: 'PUSH',
       category: 'PROMOTION_CAMPAIGN',
-      variables: [],
+      variables: '',
     },
   });
 
@@ -149,8 +149,8 @@ async function main() {
       data: {
         title: n.title,
         message: 'Lorem ipsum notification test message body.',
-        channel: n.channel as any,
-        status: n.status as any,
+        channel: n.channel,
+        status: n.status,
         userId: n.userId,
         templateId: n.templateId,
         createdAt: pastDays(n.days),
@@ -161,7 +161,7 @@ async function main() {
     await prisma.deliveryStatus.create({
       data: {
         notificationId: notif.id,
-        status: n.status as any,
+        status: n.status,
         timestamp: pastDays(n.days),
       },
     });
@@ -169,7 +169,7 @@ async function main() {
     await prisma.notificationLog.create({
       data: {
         notificationId: notif.id,
-        status: n.status as any,
+        status: n.status,
         details: n.status === 'DELIVERED' ? 'Delivered successfully through provider gateway.' : 'Provider returned: Gateway timeout.',
         durationMs: Math.floor(Math.random() * 500) + 100,
         createdAt: pastDays(n.days),
@@ -187,7 +187,7 @@ async function main() {
       await prisma.notificationAnalytics.create({
         data: {
           date,
-          channel: ch as any,
+          channel: ch,
           sentCount: Math.floor(Math.random() * 15) + 5,
           deliveredCount: Math.floor(Math.random() * 12) + 3,
           failedCount: Math.floor(Math.random() * 3),

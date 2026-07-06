@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -7,48 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  USER
-  ADMIN
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum Channel {
-  EMAIL
-  SMS
-  PUSH
-}
-
-enum NotificationStatus {
-  PENDING
-  PROCESSING
-  DELIVERED
-  FAILED
-  CANCELLED
-}
-
-enum DeliveryState {
-  PENDING
-  PROCESSING
-  DELIVERED
-  FAILED
-  OPENED
-  CLICKED
-  RETRIED
-  CANCELLED
-}
-
 model User {
   id           String           @id @default(uuid())
   email        String           @unique
   name         String
   passwordHash String
-  role         Role             @default(USER)
+  role         String           @default("USER") // Changed from Enum for SQLite compatibility
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   preferences  UserPreferences?
@@ -72,9 +36,9 @@ model NotificationTemplate {
   name         String        @unique
   subject      String?
   body         String
-  channel      Channel
+  channel      String        // Changed from Enum
   category     String
-  variables    String[]      // List of placeholders like ["name", "date"]
+  variables    String        // Changed from String[] to String for SQLite compatibility (comma-separated: "name,date")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   notifications Notification[]
@@ -86,9 +50,9 @@ model Notification {
   title        String
   subject      String?
   message      String
-  priority     Priority           @default(MEDIUM)
-  channel      Channel
-  status       NotificationStatus @default(PENDING)
+  priority     String             @default("MEDIUM") // Changed from Enum
+  channel      String             // Changed from Enum
+  status       String             @default("PENDING") // Changed from Enum
   scheduledFor DateTime?
   expiresAt    DateTime?
   userId       String?
@@ -117,7 +81,7 @@ model NotificationQueue {
 model NotificationLog {
   id             String       @id @default(uuid())
   notificationId String
-  status         DeliveryState
+  status         String        // Changed from Enum
   details        String?
   durationMs     Int          @default(0)
   error          String?
@@ -128,7 +92,7 @@ model NotificationLog {
 model DeliveryStatus {
   id             String        @id @default(uuid())
   notificationId String
-  status         DeliveryState
+  status         String        // Changed from Enum
   timestamp      DateTime      @default(now())
   metadata       String?       // JSON string
   notification   Notification  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
@@ -137,7 +101,7 @@ model DeliveryStatus {
 model NotificationAnalytics {
   id             String   @id @default(uuid())
   date           DateTime @default(now())
-  channel        Channel
+  channel        String   // Changed from Enum
   sentCount      Int      @default(0)
   deliveredCount Int      @default(0)
   failedCount    Int      @default(0)

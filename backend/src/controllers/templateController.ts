@@ -1,6 +1,15 @@
 import { Request, Response } from 'express';
 import prisma from '../config/db';
 
+// Helper to format SQLite variables string to frontend array
+function formatTemplate(tpl: any) {
+  if (!tpl) return null;
+  return {
+    ...tpl,
+    variables: tpl.variables ? tpl.variables.split(',').filter((v: string) => v !== '') : [],
+  };
+}
+
 export async function createTemplate(req: Request, res: Response) {
   try {
     const { name, subject, body, channel, category, variables } = req.body;
@@ -9,6 +18,12 @@ export async function createTemplate(req: Request, res: Response) {
       return res.status(400).json({ error: 'Name, body, channel, and category are required' });
     }
 
+    const varsString = Array.isArray(variables)
+      ? variables.join(',')
+      : typeof variables === 'string'
+      ? variables
+      : '';
+
     const template = await prisma.notificationTemplate.create({
       data: {
         name,
@@ -16,11 +31,11 @@ export async function createTemplate(req: Request, res: Response) {
         body,
         channel,
         category,
-        variables: variables || [],
+        variables: varsString,
       },
     });
 
-    res.status(201).json(template);
+    res.status(201).json(formatTemplate(template));
   } catch (err: any) {
     console.error('Failed to create template:', err);
     if (err.code === 'P2002') {
@@ -35,7 +50,7 @@ export async function getTemplates(req: Request, res: Response) {
     const templates = await prisma.notificationTemplate.findMany({
       orderBy: { name: 'asc' },
     });
-    res.json(templates);
+    res.json(templates.map(formatTemplate));
   } catch (err) {
     console.error('Failed to fetch templates:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -53,7 +68,7 @@ export async function getTemplateDetails(req: Request, res: Response) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    res.json(template);
+    res.json(formatTemplate(template));
   } catch (err) {
     console.error('Failed to fetch template details:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -65,6 +80,12 @@ export async function updateTemplate(req: Request, res: Response) {
     const { id } = req.params;
     const { name, subject, body, channel, category, variables } = req.body;
 
+    const varsString = Array.isArray(variables)
+      ? variables.join(',')
+      : typeof variables === 'string'
+      ? variables
+      : '';
+
     const template = await prisma.notificationTemplate.update({
       where: { id },
       data: {
@@ -73,11 +94,11 @@ export async function updateTemplate(req: Request, res: Response) {
         body,
         channel,
         category,
-        variables,
+        variables: varsString,
       },
     });
 
-    res.json(template);
+    res.json(formatTemplate(template));
   } catch (err) {
     console.error('Failed to update template:', err);
     res.status(500).json({ error: 'Internal server error' });
