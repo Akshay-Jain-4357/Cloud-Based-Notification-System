@@ -1,0 +1,158 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Channel {
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryState {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  OPENED
+  CLICKED
+  RETRIED
+  CANCELLED
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  name         String
+  passwordHash String
+  role         Role             @default(USER)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  preferences  UserPreferences?
+  notifications Notification[]
+}
+
+model UserPreferences {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  emailEnabled         Boolean  @default(true)
+  smsEnabled           Boolean  @default(true)
+  pushEnabled          Boolean  @default(true)
+  marketingEnabled     Boolean  @default(true)
+  securityAlertsEnabled Boolean @default(true)
+  digestEnabled        Boolean  @default(false)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationTemplate {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  subject      String?
+  body         String
+  channel      Channel
+  category     String
+  variables    String[]      // List of placeholders like ["name", "date"]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  notifications Notification[]
+  eventTriggers EventTrigger[]
+}
+
+model Notification {
+  id           String             @id @default(uuid())
+  title        String
+  subject      String?
+  message      String
+  priority     Priority           @default(MEDIUM)
+  channel      Channel
+  status       NotificationStatus @default(PENDING)
+  scheduledFor DateTime?
+  expiresAt    DateTime?
+  userId       String?
+  templateId   String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template     NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  queueItem    NotificationQueue?
+  logs         NotificationLog[]
+  statuses     DeliveryStatus[]
+}
+
+model NotificationQueue {
+  id             String       @id @default(uuid())
+  notificationId String       @unique
+  attempts       Int          @default(0)
+  maxAttempts    Int          @default(3)
+  visibleAfter   DateTime     @default(now())
+  lockedAt       DateTime?
+  error          String?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model NotificationLog {
+  id             String       @id @default(uuid())
+  notificationId String
+  status         DeliveryState
+  details        String?
+  durationMs     Int          @default(0)
+  error          String?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryStatus {
+  id             String        @id @default(uuid())
+  notificationId String
+  status         DeliveryState
+  timestamp      DateTime      @default(now())
+  metadata       String?       // JSON string
+  notification   Notification  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model NotificationAnalytics {
+  id             String   @id @default(uuid())
+  date           DateTime @default(now())
+  channel        Channel
+  sentCount      Int      @default(0)
+  deliveredCount Int      @default(0)
+  failedCount    Int      @default(0)
+  openCount      Int      @default(0)
+  clickCount     Int      @default(0)
+
+  @@unique([date, channel])
+}
+
+model EventTrigger {
+  id          String               @id @default(uuid())
+  name        String               @unique
+  description String?
+  templateId  String
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  template    NotificationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
